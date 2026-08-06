@@ -1,4 +1,5 @@
 import requests
+import os
 import pandas as pd
 from datetime import date
 
@@ -24,7 +25,18 @@ def get_historical_weather(lat, lon, start_date, end_date):
     }
     response = requests.get(url, params=params)
     return response.json()
-
+# Get the current temperature
+def get_current_weather(lat, lon):
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "current": "temperature_2m",
+        "timezone": "America/Los_Angeles",
+    }
+    response = requests.get(url, params=params)
+    return response.json()
+    
 def get_forecast(lat, lon):
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
@@ -39,6 +51,14 @@ def get_forecast(lat, lon):
 
 today = date.today()
 current_year = today.year
+current_data = get_current_weather(LATITUDE, LONGITUDE)
+current_temp = current_data["current"]["temperature_2m"]
+current_time = current_data["current"]["time"]
+temp_f = round((current_temp*9/5+32), 1)
+log_df = pd.DataFrame({"date": [str(today)], "time": [current_time] , "temperature_2m": [current_temp], "temp_f" : [temp_f]})
+log_file = "daily_log.csv"
+
+
 
 # Collect historical data for the last 5 years
 all_data = []
@@ -82,7 +102,9 @@ print(f"Average Low: {historical_df['min_temp'].mean():.1f}°C")
 print("\n--- 7-Day Forecast ---")
 print(forecast_df)
 
+print(f"Logged current temperature: {current_temp} degrees C at {current_time}")
 # Save to CSV
 historical_df.to_csv("historical_weather.csv", index=False)
 forecast_df.to_csv("forecast_weather.csv", index=False)
+log_df.to_csv(log_file, mode='a', header=not os.path.isfile(log_file), index=False)
 print("\nData saved to CSV files.")
